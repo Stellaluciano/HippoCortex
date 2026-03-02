@@ -46,34 +46,8 @@ Most agent stacks still treat memory as prompt stuffing. That works until scale,
 
 ## Architecture
 
-Architecture PNG is generated locally (not committed here due binary-file constraints).
+<img width="2379" height="1380" alt="hippocortex_architecture" src="https://github.com/user-attachments/assets/224c4836-a1c4-480f-803c-f54c157f1654" />
 
-To generate it: `python scripts/render_diagram.py` (outputs `assets/hippocortex_architecture.png`).
-
-Mermaid source is versioned in [`docs/architecture.mmd`](docs/architecture.mmd).
-
-```mermaid
-flowchart LR
-    A[AI Agent / App] --> B[HippoCortex SDK]
-    B --> C[Memory Router\n(policy + budgets)]
-    C --> D[Working Memory\n(context window manager)]
-    D --> E[Hippocampus Layer\nEpisodic Store]
-    E --> F[Consolidation Engine\nreplay + distill]
-    F --> G[Cortex Layer\nSemantic Index]
-    G --> H[LLM Provider\nOpenAI / Anthropic / local]
-    G --> I[Tools / RAG\nDocs, Web, Codebase]
-
-    J[Storage Adapters\nSQLite/Postgres\nVector Index\nOptional Graph] --> E
-    J --> G
-```
-
-### Regenerate the PNG diagram
-
-```bash
-python scripts/render_diagram.py
-```
-
-This regenerates `assets/hippocortex_architecture.png` from the scripted layout.
 
 ---
 
