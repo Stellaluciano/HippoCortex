@@ -1,0 +1,14 @@
+flowchart LR
+    A[AI Agent / App] --> B[HippoCortex SDK]
+    B --> C[Memory Router<br/>policy + budgets]
+
+    C --> D[Working Memory<br/>context window manager]
+    D --> E[Hippocampus Layer<br/>Episodic Store]
+    E --> F[Consolidation Engine<br/>replay + distill]
+    F --> G[Cortex Layer<br/>Semantic Index]
+
+    G --> H[LLM Provider<br/>OpenAI / Anthropic / local]
+    G --> I[Tools / RAG<br/>Docs, Web, Codebase]
+
+    J[Storage Adapters<br/>SQLite/Postgres<br/>Vector index<br/>Optional graph] --> E
+    J --> G
