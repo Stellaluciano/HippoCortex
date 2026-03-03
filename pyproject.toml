@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "HippoCortex: dual-memory OS for AI agents"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "HippoCortex Contributors" }]
 dependencies = []
 
@@ -32,3 +32,11 @@ ignore = ["E501"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["hippocortex*"]
+exclude = ["assets*", "tests*", "docs*", "examples*"]
