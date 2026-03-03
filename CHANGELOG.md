@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - GitHub Actions CI workflow for Python 3.11/3.12 test execution on push and pull requests.
 - Dependabot configuration for weekly Python and GitHub Actions dependency updates.
+- PR language guard workflow to enforce English-only PR title and body metadata.
 
 ### Changed
 - Expanded contributor guide with CI expectations and local quality workflow.

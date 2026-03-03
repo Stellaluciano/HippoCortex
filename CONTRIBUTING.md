@@ -24,6 +24,7 @@ pytest -q
 
 GitHub Actions runs the following checks on pull requests and protected branches:
 
+- PR title/body English-only metadata guard
 - Pytest test suite
 - Python 3.11 and 3.12 compatibility
 

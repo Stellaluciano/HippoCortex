@@ -1,0 +1,31 @@
+name: PR Language Guard
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  english-only-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title/body are English-only
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request?.title || "";
+            const body = context.payload.pull_request?.body || "";
+            const text = `${title}\n${body}`;
+
+            // Basic CJK detection to block non-English PR metadata.
+            const cjkPattern = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
+
+            if (cjkPattern.test(text)) {
+              core.setFailed(
+                "PR title/body must be written in English only. Please remove non-English characters and resubmit."
+              );
+            } else {
+              core.info("PR metadata language check passed.");
+            }
