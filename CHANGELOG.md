@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- GitHub Actions CI workflow for Python 3.11/3.12 test execution on push and pull requests.
+- Dependabot configuration for weekly Python and GitHub Actions dependency updates.
+
+### Changed
+- Expanded contributor guide with CI expectations and local quality workflow.
+- Added an engineering maturity section in the README to surface project reliability practices.
+- Added Ruff tool configuration in `pyproject.toml` for consistent lint settings.
+
 ## [0.1.0] - 2026-03-02
 ### Added
 - PR1 repository foundation docs and metadata.

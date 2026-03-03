@@ -100,6 +100,19 @@ Expected flow:
 
 ---
 
+
+## Engineering maturity
+
+To keep HippoCortex production-friendly as it grows:
+
+- CI runs test jobs on Python 3.11/3.12 for every PR.
+- Dependabot tracks Python and GitHub Actions dependency updates weekly.
+- Contribution rules require docs/changelog updates for user-visible behavior.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow.
+
+---
+
 ## Roadmap
 
 ### MVP (this stage)
