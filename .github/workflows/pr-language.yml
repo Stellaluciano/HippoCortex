@@ -21,8 +21,13 @@ jobs:
 
             // Basic CJK detection to block non-English PR metadata.
             const cjkPattern = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
+            const cjkPatternGlobal = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g;
 
             if (cjkPattern.test(text)) {
+              const offending = [...new Set((text.match(cjkPatternGlobal) || []))].slice(0, 12).join(" ");
+              core.error(`Detected non-English characters in PR metadata. Offending sample: ${offending || "(unable to extract sample)"}`);
+              core.error("Please edit the PR title and body and remove CJK characters (Chinese/Japanese/Korean). ");
+              core.error("Tip: paste your final text into .github/pull_request_template.md sections and keep all content English-only.");
               core.setFailed(
                 "PR title/body must be written in English only. Please remove non-English characters and resubmit."
               );

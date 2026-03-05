@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from hippocortex.config import HippoConfig
-from hippocortex.consolidation.replay import ReplayConsolidator
-from hippocortex.cortex.semantic_store import InMemorySemanticStore, SQLiteSemanticStore
 from hippocortex.embedders.base import Embedder
 from hippocortex.embedders.dummy_embedder import DummyEmbedder
 from hippocortex.hippo.episodic_store import SQLiteEpisodicStore
-from hippocortex.router import MemoryRouter
+from hippocortex.registry import get_consolidation_strategy, get_router_strategy, get_storage_backend, register_defaults
 from hippocortex.types import ConsolidationOutput, ContextPack
 from hippocortex.working_memory import WorkingMemory
+
+
+logger = logging.getLogger(__name__)
 
 
 class CortexAPI:
@@ -28,36 +30,43 @@ class HippoCortex:
     embedder: Embedder
 
     def __post_init__(self) -> None:
+        register_defaults()
+        self.config.validate()
         self.config.ensure_parent_dir()
-        self.hippo = SQLiteEpisodicStore(self.config.db_path)
-        semantic_backend = self.config.semantic_store_backend.lower()
-        if semantic_backend == "memory":
-            self.semantic_store = InMemorySemanticStore(self.embedder.dimension)
-        elif semantic_backend == "sqlite":
-            semantic_db_path = self.config.semantic_store_db_path or self.config.db_path
-            self.semantic_store = SQLiteSemanticStore(db_path=semantic_db_path, dimension=self.embedder.dimension)
-        else:
-            raise ValueError(f"Unknown semantic store backend: {self.config.semantic_store_backend}")
+
+        if self.embedder.dimension != self.config.model.embedding_dim:
+            raise ValueError(
+                f"Invalid config: embedder dimension {self.embedder.dimension} does not match "
+                f"model.embedding_dim {self.config.model.embedding_dim}"
+            )
+
+        self.hippo = SQLiteEpisodicStore(self.config.storage.db_path)
+        semantic_backend = self.config.storage.semantic_store_backend.lower()
+        self.semantic_store = get_storage_backend(semantic_backend, self.config, self.embedder.dimension)
         self.cortex = CortexAPI(self)
-        self.router = MemoryRouter()
-        self.working_memory = WorkingMemory(max_recent_turns=self.config.working_memory_turns)
-        self._consolidator = ReplayConsolidator(replay_size=self.config.replay_episodes)
+        self.router = get_router_strategy(self.config.router.strategy)
+        self.working_memory = WorkingMemory(max_recent_turns=self.config.runtime.working_memory_turns)
+        self._consolidators: dict[str, object] = {}
+
+        logger.info("HippoCortex effective config: %s", self.config.as_dict())
 
     @classmethod
     def default(cls, config: HippoConfig | None = None, embedder: Embedder | None = None) -> "HippoCortex":
-        cfg = config or HippoConfig.from_env()
-        emb = embedder or DummyEmbedder(dimension=cfg.embedding_dim)
+        cfg = HippoConfig.from_env().merged(config)
+        emb = embedder or DummyEmbedder(dimension=cfg.model.embedding_dim)
         return cls(config=cfg, embedder=emb)
 
     def consolidate(self, agent_id: str, session_id: str | None = None, strategy: str = "replay_v1") -> ConsolidationOutput:
-        if strategy != "replay_v1":
-            raise ValueError(f"Unknown consolidation strategy: {strategy}")
-        episodes = self._consolidator.select_episodes(self.hippo, agent_id=agent_id, session_id=session_id)
-        return self._consolidator.run(agent_id=agent_id, episodes=episodes, embedder=self.embedder, semantic_store=self.semantic_store)
+        consolidator = self._consolidators.get(strategy)
+        if consolidator is None:
+            consolidator = get_consolidation_strategy(strategy, self.config)
+            self._consolidators[strategy] = consolidator
+        episodes = consolidator.select_episodes(self.hippo, agent_id=agent_id, session_id=session_id)
+        return consolidator.run(agent_id=agent_id, episodes=episodes, embedder=self.embedder, semantic_store=self.semantic_store)
 
     def build_context(self, agent_id: str, session_id: str, user_message: str, max_tokens: int) -> ContextPack:
         decision = self.router.route(user_message=user_message, max_tokens=max_tokens)
-        recent_events = self.hippo.list_events(agent_id=agent_id, session_id=session_id, limit=self.config.working_memory_turns)
+        recent_events = self.hippo.list_events(agent_id=agent_id, session_id=session_id, limit=self.config.runtime.working_memory_turns)
         selected_recent = self.working_memory.select_recent(recent_events, token_budget=decision.working_memory_tokens)
 
         semantic_notes = []
