@@ -38,5 +38,5 @@ indent-style = "space"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["hippocortex*"]
+include = ["hippocortex", "hippocortex.*"]
 exclude = ["assets*", "tests*", "docs*", "examples*"]
