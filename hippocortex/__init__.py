@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from hippocortex.config import HippoConfig
@@ -9,6 +10,9 @@ from hippocortex.hippo.episodic_store import SQLiteEpisodicStore
 from hippocortex.registry import get_consolidation_strategy, get_router_strategy, get_storage_backend, register_defaults
 from hippocortex.types import ConsolidationOutput, ContextPack
 from hippocortex.working_memory import WorkingMemory
+
+
+logger = logging.getLogger(__name__)
 
 
 class CortexAPI:
@@ -44,7 +48,7 @@ class HippoCortex:
         self.working_memory = WorkingMemory(max_recent_turns=self.config.runtime.working_memory_turns)
         self._consolidators: dict[str, object] = {}
 
-        print(f"[HippoCortex] Effective config: {self.config.as_dict()}")
+        logger.info("HippoCortex effective config: %s", self.config.as_dict())
 
     @classmethod
     def default(cls, config: HippoConfig | None = None, embedder: Embedder | None = None) -> "HippoCortex":
