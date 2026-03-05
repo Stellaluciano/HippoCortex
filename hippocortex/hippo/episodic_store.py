@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from hippocortex.observability import configure_json_logger
+from hippocortex.telemetry import NoOpTelemetry, Telemetry
 from hippocortex.types import EventRecord
 
 
 class SQLiteEpisodicStore:
-    def __init__(self, db_path: str) -> None:
+    def __init__(self, db_path: str, telemetry: Telemetry | None = None) -> None:
         self.db_path = db_path
+        self.telemetry = telemetry or NoOpTelemetry()
+        self.logger = logging.getLogger("hippocortex.observability")
+        configure_json_logger(self.logger)
         Path(db_path).parent.mkdir(parents=True, exist_ok=True) if Path(db_path).parent != Path(".") else None
         self._init_db()
 
@@ -48,6 +54,7 @@ class SQLiteEpisodicStore:
         content: str,
         metadata: dict | None = None,
         importance: float = 0.5,
+        request_id: str | None = None,
     ) -> EventRecord:
         event = EventRecord(
             agent_id=agent_id,
@@ -76,6 +83,17 @@ class SQLiteEpisodicStore:
             )
             conn.commit()
             event.id = int(cur.lastrowid)
+        self.telemetry.increment("hippocortex.events.write", value=1, tags={"agent_id": agent_id, "session_id": session_id})
+        self.logger.info(
+            "event_written",
+            extra={
+                "agent_id": agent_id,
+                "session_id": session_id,
+                "request_id": request_id,
+                "metric": "hippocortex.events.write",
+                "value": 1,
+            },
+        )
         return event
 
     def list_events(self, agent_id: str, session_id: str | None = None, limit: int = 50) -> list[EventRecord]:
