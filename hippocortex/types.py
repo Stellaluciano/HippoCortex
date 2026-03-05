@@ -65,6 +65,7 @@ class RoutingDecision(BaseModel):
     working_memory_tokens: int
     semantic_tokens: int
     include_highlights: bool = True
+    explain: dict[str, Any] = Field(default_factory=dict)
 
 
 class ConsolidationOutput(BaseModel):
