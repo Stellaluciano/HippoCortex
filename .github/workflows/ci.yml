@@ -31,5 +31,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
 
+      - name: Check package layout
+        run: python scripts/check_duplicate_package_mirror.py
+
       - name: Run tests
         run: pytest -q
