@@ -1,5 +1,7 @@
 ## Summary
 
+> Write this PR in English only. Do not include Chinese/Japanese/Korean characters.
+
 Provide a concise summary of the change and the user-facing impact.
 
 ## Motivation
