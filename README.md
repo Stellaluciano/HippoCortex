@@ -76,6 +76,12 @@ Expected flow:
 - Session-grounded temporal traces.
 - Optimized for “what just happened?”
 
+### Working-memory recency convention
+
+- Inputs to working-memory selection are ordered **newest → oldest**.
+- Token budget is consumed from the latest events first to preserve near-term context under tight budgets.
+- Selected turns can be rendered in chronological order for display without changing recency-based selection semantics.
+
 ### 2) Cortex layer (semantic memory)
 
 - Durable semantic notes and facts.

@@ -12,6 +12,11 @@ class WorkingMemory:
         return max(1, len(text) // 4)
 
     def select_recent(self, events: list[EventRecord], token_budget: int) -> list[EventRecord]:
+        """Select recent events from newest->oldest input under a token budget.
+
+        The token budget is consumed in recency order (latest first). The return
+        value is reversed to chronological order for easier downstream display.
+        """
         selected: list[EventRecord] = []
         running = 0
         for event in events:
@@ -20,4 +25,4 @@ class WorkingMemory:
                 break
             selected.append(event)
             running += cost
-        return selected
+        return list(reversed(selected))
