@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from hippocortex.config import HippoConfig
 from hippocortex.consolidation.replay import ReplayConsolidator
-from hippocortex.cortex.semantic_store import InMemorySemanticStore
+from hippocortex.cortex.semantic_store import InMemorySemanticStore, SQLiteSemanticStore
 from hippocortex.embedders.base import Embedder
 from hippocortex.embedders.dummy_embedder import DummyEmbedder
 from hippocortex.hippo.episodic_store import SQLiteEpisodicStore
@@ -30,7 +30,14 @@ class HippoCortex:
     def __post_init__(self) -> None:
         self.config.ensure_parent_dir()
         self.hippo = SQLiteEpisodicStore(self.config.db_path)
-        self.semantic_store = InMemorySemanticStore(self.embedder.dimension)
+        semantic_backend = self.config.semantic_store_backend.lower()
+        if semantic_backend == "memory":
+            self.semantic_store = InMemorySemanticStore(self.embedder.dimension)
+        elif semantic_backend == "sqlite":
+            semantic_db_path = self.config.semantic_store_db_path or self.config.db_path
+            self.semantic_store = SQLiteSemanticStore(db_path=semantic_db_path, dimension=self.embedder.dimension)
+        else:
+            raise ValueError(f"Unknown semantic store backend: {self.config.semantic_store_backend}")
         self.cortex = CortexAPI(self)
         self.router = MemoryRouter()
         self.working_memory = WorkingMemory(max_recent_turns=self.config.working_memory_turns)
@@ -51,7 +58,6 @@ class HippoCortex:
     def build_context(self, agent_id: str, session_id: str, user_message: str, max_tokens: int) -> ContextPack:
         decision = self.router.route(user_message=user_message, max_tokens=max_tokens)
         recent_events = self.hippo.list_events(agent_id=agent_id, session_id=session_id, limit=self.config.working_memory_turns)
-        recent_events = list(reversed(recent_events))
         selected_recent = self.working_memory.select_recent(recent_events, token_budget=decision.working_memory_tokens)
 
         semantic_notes = []
