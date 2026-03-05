@@ -70,4 +70,5 @@ class RoutingDecision(BaseModel):
 class ConsolidationOutput(BaseModel):
     strategy: str
     notes_created: int
+    notes_skipped_dedup: int = 0
     episode_ids: list[int]

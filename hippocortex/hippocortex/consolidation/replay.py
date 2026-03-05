@@ -16,20 +16,50 @@ class ReplayConsolidator:
         return store.list_events(agent_id=agent_id, session_id=session_id, limit=self.replay_size)
 
     def run(self, agent_id: str, episodes: list, embedder, semantic_store) -> ConsolidationOutput:
+        strategy = "replay_v1"
         facts = distill_episodes(episodes)
+        episode_ids = [ep.id for ep in episodes if ep.id is not None]
+        episode_ids_sorted = sorted(episode_ids)
+        run_basis = f"{agent_id}:{episode_ids_sorted}:{strategy}"
+        run_id = stable_id(run_basis, prefix="con_run_")
+
+        notes_created = 0
+        notes_skipped_dedup = 0
+
         for i, fact in enumerate(facts):
+            digest = stable_id(f"{run_basis}:{fact}", prefix="digest_")
+            if semantic_store.has_equivalent_note(
+                agent_id=agent_id,
+                text=fact,
+                provenance_episode_ids=episode_ids_sorted,
+                digest=digest,
+            ):
+                notes_skipped_dedup += 1
+                continue
+
             note_id = stable_id(f"{agent_id}:{fact}:{i}", prefix="note_")
             note = SemanticNote(
                 id=note_id,
                 agent_id=agent_id,
                 text=fact,
                 embedding=embedder.embed_text(fact),
-                metadata={"source": "consolidation", "strategy": "replay_v1"},
-                provenance_episode_ids=[e.id for e in episodes if e.id is not None],
+                metadata={
+                    "source": "consolidation",
+                    "strategy": strategy,
+                    "run_id": run_id,
+                    "digest": digest,
+                },
+                provenance_episode_ids=episode_ids_sorted,
             )
-            semantic_store.add_note(note)
+            created = semantic_store.add_note(note, on_conflict="ignore")
+            if created:
+                notes_created += 1
+            else:
+                notes_skipped_dedup += 1
+
         return ConsolidationOutput(
-            strategy="replay_v1",
-            notes_created=len(facts),
-            episode_ids=[ep.id for ep in episodes if ep.id is not None],
+            strategy=strategy,
+            notes_created=notes_created,
+            notes_skipped_dedup=notes_skipped_dedup,
+            episode_ids=episode_ids,
         )

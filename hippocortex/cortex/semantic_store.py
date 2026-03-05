@@ -12,7 +12,16 @@ from hippocortex.types import SearchResult, SemanticNote
 
 class SemanticStore(ABC):
     @abstractmethod
-    def add_note(self, note: SemanticNote) -> None: ...
+    def add_note(self, note: SemanticNote, on_conflict: str = "upsert") -> bool: ...
+
+    @abstractmethod
+    def has_equivalent_note(
+        self,
+        agent_id: str,
+        text: str,
+        provenance_episode_ids: list[int],
+        digest: str,
+    ) -> bool: ...
 
     @abstractmethod
     def search(self, agent_id: str, query_vector: list[float], k: int = 5, filters: dict | None = None) -> list[SearchResult]: ...
@@ -23,10 +32,33 @@ class InMemorySemanticStore(SemanticStore):
         self._index = SimpleVectorIndex(dimension=dimension)
         self._notes: dict[str, SemanticNote] = {}
 
-    def add_note(self, note: SemanticNote) -> None:
+    def add_note(self, note: SemanticNote, on_conflict: str = "upsert") -> bool:
+        if on_conflict not in {"upsert", "ignore"}:
+            raise ValueError(f"Unsupported on_conflict mode: {on_conflict}")
+        exists = note.id in self._notes
+        if exists and on_conflict == "ignore":
+            return False
+
         self._notes[note.id] = note
         payload = {"agent_id": note.agent_id, **note.metadata}
         self._index.upsert(note.id, note.embedding, payload=payload)
+        return not exists
+
+    def has_equivalent_note(
+        self,
+        agent_id: str,
+        text: str,
+        provenance_episode_ids: list[int],
+        digest: str,
+    ) -> bool:
+        for note in self._notes.values():
+            if note.agent_id != agent_id:
+                continue
+            if note.metadata.get("digest") == digest:
+                return True
+            if note.text == text and note.provenance_episode_ids == provenance_episode_ids:
+                return True
+        return False
 
     def search(self, agent_id: str, query_vector: list[float], k: int = 5, filters: dict | None = None) -> list[SearchResult]:
         merged_filters = {"agent_id": agent_id, **(filters or {})}
@@ -67,11 +99,20 @@ class SQLiteSemanticStore(SemanticStore):
             conn.execute("CREATE INDEX IF NOT EXISTS idx_semantic_notes_created_at ON semantic_notes(created_at)")
             conn.commit()
 
-    def add_note(self, note: SemanticNote) -> None:
+    def add_note(self, note: SemanticNote, on_conflict: str = "upsert") -> bool:
+        if on_conflict not in {"upsert", "ignore"}:
+            raise ValueError(f"Unsupported on_conflict mode: {on_conflict}")
         if len(note.embedding) != self.dimension:
             raise ValueError(f"Vector dimension mismatch: expected {self.dimension}, got {len(note.embedding)}")
 
         with self._connect() as conn:
+            existed = (
+                conn.execute("SELECT 1 FROM semantic_notes WHERE note_id = ?", (note.id,)).fetchone()
+                is not None
+            )
+            if on_conflict == "ignore" and existed:
+                return False
+
             conn.execute(
                 """
                 INSERT INTO semantic_notes (
@@ -96,6 +137,26 @@ class SQLiteSemanticStore(SemanticStore):
                 ),
             )
             conn.commit()
+            return not existed
+
+    def has_equivalent_note(
+        self,
+        agent_id: str,
+        text: str,
+        provenance_episode_ids: list[int],
+        digest: str,
+    ) -> bool:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT text, metadata, provenance_episode_ids FROM semantic_notes WHERE agent_id = ?", (agent_id,)).fetchall()
+
+        for row in rows:
+            metadata = json.loads(row["metadata"])
+            if metadata.get("digest") == digest:
+                return True
+            stored_provenance = [int(value) for value in json.loads(row["provenance_episode_ids"])]
+            if row["text"] == text and stored_provenance == provenance_episode_ids:
+                return True
+        return False
 
     def search(self, agent_id: str, query_vector: list[float], k: int = 5, filters: dict | None = None) -> list[SearchResult]:
         if len(query_vector) != self.dimension:
