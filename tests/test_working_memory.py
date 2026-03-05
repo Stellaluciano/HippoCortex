@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from hippocortex import DummyEmbedder, HippoConfig, HippoCortex
+from hippocortex.config import ModelConfig, RuntimeConfig, StorageConfig
 from hippocortex.types import EventRecord
 from hippocortex.working_memory import WorkingMemory
 
@@ -32,7 +33,7 @@ def test_select_recent_prioritizes_latest_events_with_budget():
 
 def test_build_context_uses_latest_events_not_earliest(tmp_path):
     db_path = tmp_path / "memory.db"
-    sdk = HippoCortex.default(config=HippoConfig(db_path=str(db_path), working_memory_turns=4), embedder=DummyEmbedder(dimension=8))
+    sdk = HippoCortex.default(config=HippoConfig(storage=StorageConfig(db_path=str(db_path)), runtime=RuntimeConfig(working_memory_turns=4), model=ModelConfig(embedding_dim=8)), embedder=DummyEmbedder(dimension=8))
 
     sdk.hippo.add_event("agent", "session", "user", "oldest-aaaa")  # 2 tokens
     sdk.hippo.add_event("agent", "session", "assistant", "older-bbbb")  # 2 tokens

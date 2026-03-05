@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from hippocortex.consolidation.distill import distill_episodes
 from hippocortex.types import ConsolidationOutput, SemanticNote
 from hippocortex.utils.hashing import stable_id
 
 
 class ReplayConsolidator:
-    def __init__(self, replay_size: int = 20) -> None:
+    def __init__(self, replay_size: int = 20, distill_strategy: str = "auto", strategy_name: str = "replay_v1") -> None:
         self.replay_size = replay_size
+        self.distill_strategy = distill_strategy
+        self.strategy_name = strategy_name
 
     def select_episodes(self, store, agent_id: str, session_id: str | None = None) -> list:
         by_importance = store.top_events_by_importance(agent_id=agent_id, session_id=session_id, limit=self.replay_size)
@@ -16,8 +17,10 @@ class ReplayConsolidator:
         return store.list_events(agent_id=agent_id, session_id=session_id, limit=self.replay_size)
 
     def run(self, agent_id: str, episodes: list, embedder, semantic_store) -> ConsolidationOutput:
-        strategy = "replay_v1"
-        facts = distill_episodes(episodes)
+        from hippocortex.registry import get_distill_strategy
+
+        strategy = self.strategy_name
+        facts = get_distill_strategy(self.distill_strategy)(episodes)
         episode_ids = [ep.id for ep in episodes if ep.id is not None]
         episode_ids_sorted = sorted(episode_ids)
         run_basis = f"{agent_id}:{episode_ids_sorted}:{strategy}"

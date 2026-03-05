@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from hippocortex import HippoConfig, HippoCortex
+from hippocortex.config import ModelConfig, StorageConfig
 from hippocortex.cortex.semantic_store import InMemorySemanticStore, SQLiteSemanticStore
 from hippocortex.embedders.dummy_embedder import DummyEmbedder
 from hippocortex.types import SemanticNote
@@ -55,9 +56,8 @@ def test_sqlite_semantic_store_matches_inmemory_behavior(tmp_path):
 def test_semantic_store_persists_across_restart(tmp_path):
     db_path = tmp_path / "hippocortex.db"
     config = HippoConfig(
-        db_path=str(db_path),
-        embedding_dim=8,
-        semantic_store_backend="sqlite",
+        storage=StorageConfig(db_path=str(db_path), semantic_store_backend="sqlite"),
+        model=ModelConfig(embedding_dim=8),
     )
     embedder = DummyEmbedder(dimension=8)
 
