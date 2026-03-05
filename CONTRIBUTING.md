@@ -48,6 +48,7 @@ Use clear, imperative subjects, for example:
 
 ## Pull request checklist
 
+- [ ] PR title and PR body contain English text only (no non-English characters)
 - [ ] Tests or runnable validation included
 - [ ] README/docs updated when needed
 - [ ] CHANGELOG entry added
