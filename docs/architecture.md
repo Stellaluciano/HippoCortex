@@ -14,7 +14,7 @@ A thin orchestration layer exposing memory APIs and extension points.
 Decides how to allocate context budget between recent turns and long-term recall.
 
 ### 4) Working Memory
-Short-horizon context window manager for immediate conversational relevance.
+Short-horizon context window manager for immediate conversational relevance. Input events are treated as newest → oldest, token budget is consumed latest-first, and selected turns may be reordered to chronological order only for presentation.
 
 ### 5) Hippocampus Layer (Episodic Store)
 Fast capture of events with time/session provenance.

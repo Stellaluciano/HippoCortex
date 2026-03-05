@@ -51,7 +51,6 @@ class HippoCortex:
     def build_context(self, agent_id: str, session_id: str, user_message: str, max_tokens: int) -> ContextPack:
         decision = self.router.route(user_message=user_message, max_tokens=max_tokens)
         recent_events = self.hippo.list_events(agent_id=agent_id, session_id=session_id, limit=self.config.working_memory_turns)
-        recent_events = list(reversed(recent_events))
         selected_recent = self.working_memory.select_recent(recent_events, token_budget=decision.working_memory_tokens)
 
         semantic_notes = []
