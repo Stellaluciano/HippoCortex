@@ -1,6 +1,5 @@
 from hippocortex import HippoCortex
 
-
 def test_consolidation_creates_semantic_notes(tmp_path):
     memory = HippoCortex.default()
     memory.config.db_path = str(tmp_path / "hc.db")
@@ -14,3 +13,18 @@ def test_consolidation_creates_semantic_notes(tmp_path):
 
     hits = memory.cortex.search(agent_id="a1", query="What does user like?", k=5)
     assert len(hits) >= 1
+
+def test_consolidation_is_idempotent_for_same_input(tmp_path):
+    memory = HippoCortex.default()
+    memory.config.db_path = str(tmp_path / "hc.db")
+    memory.__post_init__()
+
+    memory.hippo.add_event("a1", "s1", "user", "I enjoy tea and mountain hiking.", {})
+    memory.hippo.add_event("a1", "s1", "assistant", "Got it, tea and hiking preference saved.", {})
+
+    first = memory.consolidate(agent_id="a1", session_id="s1")
+    second = memory.consolidate(agent_id="a1", session_id="s1")
+
+    assert first.notes_created >= 1
+    assert second.notes_created == 0
+    assert second.notes_skipped_dedup >= 1

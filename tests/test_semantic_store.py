@@ -5,7 +5,6 @@ from hippocortex.cortex.semantic_store import InMemorySemanticStore, SQLiteSeman
 from hippocortex.embedders.dummy_embedder import DummyEmbedder
 from hippocortex.types import SemanticNote
 
-
 def test_sqlite_semantic_store_matches_inmemory_behavior(tmp_path):
     db_path = tmp_path / "semantic.db"
     dimension = 4
@@ -53,7 +52,6 @@ def test_sqlite_semantic_store_matches_inmemory_behavior(tmp_path):
     assert [hit.note.id for hit in sqlite_hits] == [hit.note.id for hit in memory_hits]
     assert [round(hit.score, 6) for hit in sqlite_hits] == [round(hit.score, 6) for hit in memory_hits]
 
-
 def test_semantic_store_persists_across_restart(tmp_path):
     db_path = tmp_path / "hippocortex.db"
     config = HippoConfig(
@@ -86,3 +84,25 @@ def test_semantic_store_persists_across_restart(tmp_path):
     assert len(hits) == 1
     assert hits[0].note.id == "persistent-note"
     assert hits[0].note.provenance_episode_ids == [101]
+
+def test_semantic_store_add_note_ignore_conflict(tmp_path):
+    db_path = tmp_path / "semantic_conflict.db"
+    store = SQLiteSemanticStore(db_path=str(db_path), dimension=4)
+    note = SemanticNote(
+        id="n1",
+        agent_id="agent-1",
+        text="alpha",
+        embedding=[1.0, 0.0, 0.0, 0.0],
+        metadata={"topic": "ai", "digest": "d1"},
+        provenance_episode_ids=[1],
+        created_at=datetime.utcnow(),
+    )
+
+    assert store.add_note(note, on_conflict="ignore") is True
+    assert store.add_note(note, on_conflict="ignore") is False
+    assert store.has_equivalent_note(
+        agent_id="agent-1",
+        text="alpha",
+        provenance_episode_ids=[1],
+        digest="d1",
+    )
