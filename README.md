@@ -2,7 +2,6 @@
 
 > **HippoCortex** is a neuroscience-inspired **memory OS** for **AI agents**: capture fast **episodic memory**, distill via **memory consolidation**, and retrieve durable **semantic memory** for reliable **long-term memory** beyond the **LLM context window**.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](./pyproject.toml)
 [![Status](https://img.shields.io/badge/status-PR1%20foundation-orange.svg)](./CHANGELOG.md)
 
